@@ -8,8 +8,8 @@ use crate::ParseError::{InvalidExpr, NotANumber, StackIsEmpty};
 pub enum Expr {
     Number(i64),
     Sqr(Box<Expr>),
-    Plus(Box<Expr>, Box<Expr>),
-    Minus(Box<Expr>, Box<Expr>),
+    Add(Box<Expr>, Box<Expr>),
+    Sub(Box<Expr>, Box<Expr>),
     Mul(Box<Expr>, Box<Expr>),
     Div(Box<Expr>, Box<Expr>),
 }
@@ -23,8 +23,8 @@ pub fn eval(expr: &Expr) -> Result<i64, EvalError> {
     match expr {
         Expr::Number(number) => Ok(*number),
         Expr::Sqr(arg) => eval(arg).map(|value| value * value),
-        Expr::Plus(left, right) => eval_args(left, right).map(|(one, two)| one + two),
-        Expr::Minus(left, right) => eval_args(left, right).map(|(one, two)| one - two),
+        Expr::Add(left, right) => eval_args(left, right).map(|(one, two)| one + two),
+        Expr::Sub(left, right) => eval_args(left, right).map(|(one, two)| one - two),
         Expr::Mul(left, right) => eval_args(left, right).map(|(one, two)| one * two),
         Expr::Div(left, right) => eval_args(left, right).and_then(|params| check_divisor(params)).map(|(one, two)| one / two),
     }
@@ -58,17 +58,17 @@ pub fn parse(input: &str) -> Result<Expr, ParseError> {
                 stack.push(Expr::Sqr(param))
             },
             "*" | "/" | "+" | "-" => {
-                let left = Box::from(stack.pop().ok_or(StackIsEmpty)?);
                 let right = Box::from(stack.pop().ok_or(StackIsEmpty)?);
+                let left = Box::from(stack.pop().ok_or(StackIsEmpty)?);
 
                 let variant = match word {
                     "*" => Expr::Mul,
                     "/" => Expr::Div,
-                    "+" => Expr::Plus,
-                    _ => Expr::Minus,
+                    "+" => Expr::Add,
+                    _ => Expr::Sub,
                 };
 
-                stack.push(variant(right, left))
+                stack.push(variant(left, right))
             },
 
             value => {
@@ -98,14 +98,14 @@ mod tests {
 
     #[test]
     fn simple_expr1() {
-        let expr = Expr::Plus(Box::from(Expr::Number(1)), Box::from(Expr::Number(2)));
+        let expr = Expr::Add(Box::from(Expr::Number(1)), Box::from(Expr::Number(2)));
 
         assert_eq!(eval(&expr).unwrap(), 3);
     }
 
     #[test]
     fn simple_expr2() {
-        let expr = Expr::Minus(Box::from(Expr::Number(3)), Box::from(Expr::Number(2)));
+        let expr = Expr::Sub(Box::from(Expr::Number(3)), Box::from(Expr::Number(2)));
 
         assert_eq!(eval(&expr).unwrap(), 1);
     }
