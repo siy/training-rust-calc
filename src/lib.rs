@@ -18,9 +18,9 @@ pub enum Expr {
 }
 
 #[derive(Debug)]
-pub enum  EvalError {
+pub enum EvalError {
     DivByZero,
-    IntegerOverflow
+    IntegerOverflow,
 }
 
 impl fmt::Display for EvalError {
@@ -32,22 +32,21 @@ impl fmt::Display for EvalError {
     }
 }
 
-impl std::error::Error for EvalError {
-}
+impl std::error::Error for EvalError {}
 
 pub trait Eval {
     fn eval(&self) -> Result<i64, EvalError>;
 }
 
-fn checked_add(pair : (i64, i64)) -> Option<i64> {
+fn checked_add(pair: (i64, i64)) -> Option<i64> {
     pair.0.checked_add(pair.1)
 }
 
-fn checked_sub(pair : (i64, i64)) -> Option<i64> {
+fn checked_sub(pair: (i64, i64)) -> Option<i64> {
     pair.0.checked_sub(pair.1)
 }
 
-fn checked_mul(pair : (i64, i64)) -> Option<i64> {
+fn checked_mul(pair: (i64, i64)) -> Option<i64> {
     pair.0.checked_mul(pair.1)
 }
 
@@ -56,14 +55,9 @@ fn checked_sqr(value: i64) -> Result<i64, EvalError> {
 }
 
 fn checked_div(params: (i64, i64)) -> Result<i64, EvalError> {
-    check_divisor(params)
-        .and_then(|pair| pair.0.checked_div(pair.1).ok_or(EvalError::IntegerOverflow))
-}
-
-fn check_divisor(params: (i64, i64)) -> Result<(i64, i64), EvalError> {
     match params {
         (_, 0) => Err(DivByZero),
-        _ => Ok(params),
+        _ => params.0.checked_div(params.1).ok_or(EvalError::IntegerOverflow)
     }
 }
 
@@ -81,9 +75,9 @@ impl Eval for Expr {
         match self {
             Expr::Number(number) => Ok(*number),
             Expr::Sqr(arg) => arg.eval().and_then(checked_sqr),
-            Expr::Add(left, right) => eval_args_and_then(left, right,checked_add),
-            Expr::Sub(left, right) => eval_args_and_then(left, right,checked_sub),
-            Expr::Mul(left, right) => eval_args_and_then(left, right,checked_mul),
+            Expr::Add(left, right) => eval_args_and_then(left, right, checked_add),
+            Expr::Sub(left, right) => eval_args_and_then(left, right, checked_sub),
+            Expr::Mul(left, right) => eval_args_and_then(left, right, checked_mul),
             Expr::Div(left, right) => eval_args(left, right).and_then(checked_div),
         }
     }
@@ -107,7 +101,7 @@ impl FromStr for Expr {
                 "sqr" => {
                     let param = Box::from(stack.pop().ok_or(StackIsEmpty)?);
                     stack.push(Expr::Sqr(param))
-                },
+                }
                 "*" | "/" | "+" | "-" => {
                     let right = Box::from(stack.pop().ok_or(StackIsEmpty)?);
                     let left = Box::from(stack.pop().ok_or(StackIsEmpty)?);
@@ -120,7 +114,7 @@ impl FromStr for Expr {
                     };
 
                     stack.push(variant(left, right))
-                },
+                }
 
                 value => {
                     let number = value.parse::<i64>().map_err(|_e| NotANumber(value.to_string()))?;
